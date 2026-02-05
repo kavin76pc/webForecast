@@ -6,72 +6,82 @@
   </head>
   <body>
     <div id="three-container" class="three-container"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Energy Intelligence Studio</p>
-        <h1>⚡ Electricity Demand Forecast</h1>
-        <p class="hero__copy">
-          Explore demand patterns, share a location, and preview how the AI will
-          generate insights, charts, and reports.
-        </p>
-      </div>
-      <div class="hero__badge">
-        <span class="badge__label">Live Preview</span>
-        <span class="badge__value">AI-ready</span>
-      </div>
-    </header>
-
-    <main class="layout">
-      <section class="panel request-panel">
-        <div class="panel__header">
-          <h2>Forecast Request</h2>
-          <p>Provide a place to build a new report snapshot.</p>
-        </div>
-
-        <label for="place">Place</label>
-        <input type="text" id="place" placeholder="e.g. Seattle, WA" />
-
-        <div class="actions">
-          <button type="button" onclick="predict()">Generate Forecast</button>
-          <span class="hint">Results will update instantly.</span>
-        </div>
-
-        <div id="result" class="result">
-          <div class="result__headline">Forecast Summary</div>
-          <p class="result__summary">Enter a place to see the latest report.</p>
-          <ul class="result__highlights"></ul>
-        </div>
-      </section>
-
-      <section class="panel chart-panel">
-        <div class="panel__header row">
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand__icon">⚡</span>
           <div>
-            <h2>Demand Outlook</h2>
-            <p>Visual trend line generated from the AI output.</p>
+            <p class="brand__eyebrow">Energy Intelligence</p>
+            <h1>Demand Forecast Studio</h1>
           </div>
-          <span id="timestamp" class="timestamp"></span>
         </div>
-        <img
-          id="forecastImage"
-          class="chart-image"
-          alt="Forecast chart from the AI model"
-          hidden
-        />
-        <canvas id="forecastChart" width="760" height="320"></canvas>
-      </section>
+        <div class="topbar__meta">
+          <span class="status-dot"></span>
+          <span>Live model preview</span>
+        </div>
+      </header>
 
-      <aside class="panel insight-panel">
-        <div class="panel__header">
-          <h2>AI Report Insights</h2>
-          <p>Highlights and notes from the model output.</p>
-        </div>
-        <ul class="insights">
-          <li>Adaptive peak detection for 24-hour windows.</li>
-          <li>Regional demand profiles &amp; seasonality signals.</li>
-          <li>Ready for PyChart exports and PDF summaries.</li>
-        </ul>
-      </aside>
-    </main>
+      <main class="grid">
+        <section class="card request-card">
+          <div class="card__header">
+            <h2>Forecast Request</h2>
+            <p>Generate an AI report for any location in seconds.</p>
+          </div>
+
+          <label for="place">Place</label>
+          <input type="text" id="place" placeholder="e.g. Seattle, WA" />
+
+          <label for="last-demand">Last Recorded Demand (MW)</label>
+          <input
+            type="number"
+            id="last-demand"
+            placeholder="e.g. 60000"
+            min="0"
+            step="100"
+          />
+
+          <div class="actions">
+            <button type="button" onclick="predict()">Generate Forecast</button>
+            <span class="hint">Results update instantly.</span>
+          </div>
+
+          <div id="result" class="result">
+            <div class="result__headline">Forecast Summary</div>
+            <p class="result__summary">Enter a place to see the latest report.</p>
+            <ul class="result__highlights"></ul>
+          </div>
+        </section>
+
+        <section class="card chart-card">
+          <div class="card__header split">
+            <div>
+              <h2>Demand Outlook</h2>
+              <p>AI-generated trend line for the next 24 hours.</p>
+            </div>
+            <span id="timestamp" class="timestamp"></span>
+          </div>
+          <img
+            id="forecastImage"
+            class="chart-image"
+            alt="Forecast chart from the AI model"
+            hidden
+          />
+          <canvas id="forecastChart" width="760" height="320"></canvas>
+        </section>
+
+        <aside class="card insight-card">
+          <div class="card__header">
+            <h2>AI Report Insights</h2>
+            <p>Highlights and notes from the model output.</p>
+          </div>
+          <ul class="insights">
+            <li>Adaptive peak detection for 24-hour windows.</li>
+            <li>Regional demand profiles &amp; seasonality signals.</li>
+            <li>Ready for PyChart exports and PDF summaries.</li>
+          </ul>
+        </aside>
+      </main>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="script.js"></script>

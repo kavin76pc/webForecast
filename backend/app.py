@@ -48,17 +48,12 @@ def load_artifacts():
     return model, scaler
 
 
-def predict_next_demand(last_demand, features=None):
+def predict_next_demand(last_demand):
     model, scaler = load_artifacts()
     input_data = np.array([[last_demand]])
     input_scaled = scaler.transform(input_data)
     input_scaled = input_scaled.reshape((1, 1, 1))
-    if features is None:
-        features = [0.0, 0.0, 0.0, 0.0]
-    features_array = np.array(features, dtype=float).reshape((1, 4))
-    prediction_scaled = model.predict(
-        [input_scaled, features_array], verbose=0
-    )
+    prediction_scaled = model.predict(input_scaled, verbose=0)
     prediction = scaler.inverse_transform(prediction_scaled)
     return float(prediction[0][0])
 
