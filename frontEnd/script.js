@@ -45,6 +45,8 @@ function predict() {
       renderChart(data.series || []);
       updateThreeWithSeries(data.series || []);
     });
+    threeState.ribbon.geometry.attributes.position.needsUpdate = true;
+  }
 }
 
 function updateResult(data) {
