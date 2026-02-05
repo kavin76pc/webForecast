@@ -43,6 +43,7 @@ def forecast():
             "Placeholder forecast based on historical patterns. "
             "Replace with the AI model output when ready."
         ),
+        "chartImageUrl": None,
         "highlights": [
             f"Peak demand around {peak['hour']} at {peak['demand']} MW.",
             f"Lowest demand around {low['hour']} at {low['demand']} MW.",

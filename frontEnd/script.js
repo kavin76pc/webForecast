@@ -20,6 +20,7 @@ function predict() {
     .then((res) => res.json())
     .then((data) => {
       updateResult(data);
+      updateChartImage(data.chartImageUrl);
       renderChart(data.series || []);
     });
 }
@@ -48,10 +49,17 @@ function updateResult(data) {
 function renderChart(series) {
   const canvas = document.getElementById("forecastChart");
   const ctx = canvas.getContext("2d");
+  const image = document.getElementById("forecastImage");
   const width = canvas.width;
   const height = canvas.height;
   const padding = 40;
 
+  if (!image.hasAttribute("hidden")) {
+    canvas.classList.add("is-hidden");
+    return;
+  }
+
+  canvas.classList.remove("is-hidden");
   ctx.clearRect(0, 0, width, height);
 
   if (!series.length) {
@@ -104,4 +112,15 @@ function renderChart(series) {
       ctx.fillText(point.hour, x - 6, y);
     }
   });
+}
+
+function updateChartImage(imageUrl) {
+  const image = document.getElementById("forecastImage");
+  if (imageUrl) {
+    image.src = imageUrl;
+    image.removeAttribute("hidden");
+    return;
+  }
+  image.setAttribute("hidden", "");
+  image.removeAttribute("src");
 }
