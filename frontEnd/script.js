@@ -1,3 +1,14 @@
+const threeState = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  particles: null,
+  particleMaterial: null,
+  arcs: [],
+  rotationSpeed: 0.002,
+  targetIntensity: 0.5,
+};
+
 function predict() {
   const place = document.getElementById("place").value.trim();
   if (!place) {
@@ -22,6 +33,7 @@ function predict() {
       updateResult(data);
       updateChartImage(data.chartImageUrl);
       renderChart(data.series || []);
+      updateThreeWithSeries(data.series || []);
     });
 }
 
@@ -124,3 +136,125 @@ function updateChartImage(imageUrl) {
   image.setAttribute("hidden", "");
   image.removeAttribute("src");
 }
+
+function initThreeScene() {
+  if (typeof THREE === "undefined") {
+    return;
+  }
+
+  const container = document.getElementById("three-container");
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  camera.position.z = 120;
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  container.appendChild(renderer.domElement);
+
+  const particleGeometry = new THREE.BufferGeometry();
+  const particleCount = 160;
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i += 1) {
+    positions[i * 3] = (Math.random() - 0.5) * 180;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 140;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 120;
+  }
+  particleGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(positions, 3)
+  );
+
+  const particleMaterial = new THREE.PointsMaterial({
+    color: 0x38bdf8,
+    size: 1.8,
+    transparent: true,
+    opacity: 0.6,
+  });
+  const particles = new THREE.Points(particleGeometry, particleMaterial);
+  scene.add(particles);
+
+  const arcs = [];
+  for (let i = 0; i < 3; i += 1) {
+    const curve = new THREE.EllipseCurve(
+      0,
+      0,
+      36 + i * 10,
+      18 + i * 8,
+      0,
+      2 * Math.PI
+    );
+    const points = curve.getPoints(80);
+    const arcGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const arcMaterial = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.2 + i * 0.1,
+    });
+    const arc = new THREE.LineLoop(arcGeometry, arcMaterial);
+    arc.rotation.x = Math.PI / 2.5;
+    arc.rotation.y = i * 0.7;
+    arcs.push(arc);
+    scene.add(arc);
+  }
+
+  threeState.scene = scene;
+  threeState.camera = camera;
+  threeState.renderer = renderer;
+  threeState.particles = particles;
+  threeState.particleMaterial = particleMaterial;
+  threeState.arcs = arcs;
+
+  const animate = () => {
+    if (!threeState.scene) {
+      return;
+    }
+    threeState.particles.rotation.y += threeState.rotationSpeed;
+    threeState.particles.rotation.x += threeState.rotationSpeed * 0.6;
+    threeState.arcs.forEach((arc, index) => {
+      arc.rotation.z += threeState.rotationSpeed * (index + 1) * 0.4;
+      arc.material.opacity =
+        0.15 + threeState.targetIntensity * (0.2 + index * 0.1);
+    });
+    threeState.particleMaterial.opacity = 0.4 + threeState.targetIntensity * 0.4;
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  };
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
+}
+
+function updateThreeWithSeries(series) {
+  if (!threeState.particles || !series.length) {
+    return;
+  }
+  const demands = series.map((point) => point.demand);
+  const avgDemand =
+    demands.reduce((sum, value) => sum + value, 0) / demands.length;
+  const normalized = Math.min(Math.max((avgDemand - 700) / 500, 0), 1);
+  threeState.rotationSpeed = 0.0015 + normalized * 0.004;
+  threeState.targetIntensity = 0.3 + normalized * 0.7;
+
+  const positions = threeState.particles.geometry.attributes.position.array;
+  series.forEach((point, index) => {
+    const angle = (index / series.length) * Math.PI * 2;
+    const radius = 40 + (point.demand - avgDemand) * 0.06;
+    positions[index * 3] = Math.cos(angle) * radius;
+    positions[index * 3 + 1] = Math.sin(angle) * radius;
+    positions[index * 3 + 2] = (Math.random() - 0.5) * 80;
+  });
+  threeState.particles.geometry.attributes.position.needsUpdate = true;
+}
+
+initThreeScene();
