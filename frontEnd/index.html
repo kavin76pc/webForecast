@@ -7,32 +7,15 @@
   <body>
     <h1>⚡ Electricity Demand Forecast</h1>
 
-    <section class="card">
-      <label for="place">Place</label>
-      <input type="text" id="place" placeholder="e.g. Seattle, WA" />
+    <label>Hour (0–23)</label>
+    <input type="number" id="hour" />
 
-      <button type="button" onclick="predict()">Generate Forecast</button>
+    <label>Temperature (°C)</label>
+    <input type="number" id="temp" />
 
-      <div id="result" class="result">
-        <div class="result__headline">Forecast Summary</div>
-        <p class="result__summary">Enter a place to see the latest report.</p>
-        <ul class="result__highlights"></ul>
-      </div>
-    </section>
+    <button onclick="predict()">Predict</button>
 
-    <section class="card chart-card">
-      <div class="card__header">
-        <h2>Demand Outlook</h2>
-        <span id="timestamp" class="timestamp"></span>
-      </div>
-      <img
-        id="forecastImage"
-        class="chart-image"
-        alt="Forecast chart from the AI model"
-        hidden
-      />
-      <canvas id="forecastChart" width="700" height="320"></canvas>
-    </section>
+    <h2 id="result"></h2>
 
     <script src="script.js"></script>
   </body>
