@@ -48,6 +48,133 @@ function predict() {
       renderChart(data.series || []);
       updateThreeWithSeries(data.series || []);
     });
+    const arc = new THREE.LineLoop(arcGeometry, arcMaterial);
+    arc.rotation.x = Math.PI / 2.5;
+    arc.rotation.y = i * 0.7;
+    arcs.push(arc);
+    scene.add(arc);
+  }
+
+  threeState.scene = scene;
+  threeState.camera = camera;
+  threeState.renderer = renderer;
+  threeState.particles = particles;
+  threeState.particleMaterial = particleMaterial;
+  threeState.arcs = arcs;
+  threeState.grid = grid;
+  threeState.energyNodes = energyNodes;
+  threeState.energyFlow = energyFlow;
+  threeState.energyPath = pathCurve;
+
+  const ribbonGeometry = new THREE.BufferGeometry();
+  const ribbonPoints = new Float32Array(24 * 3);
+  ribbonGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(ribbonPoints, 3)
+  );
+  const ribbonMaterial = new THREE.LineBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.6,
+  });
+  const ribbon = new THREE.Line(ribbonGeometry, ribbonMaterial);
+  ribbon.position.y = -8;
+  scene.add(ribbon);
+  threeState.ribbon = ribbon;
+
+  const pulseGeometry = new THREE.RingGeometry(14, 16, 48);
+  const pulseMaterial = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide,
+  });
+  const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
+  pulse.rotation.x = Math.PI / 2;
+  pulse.position.y = -24;
+  scene.add(pulse);
+  threeState.pulse = pulse;
+
+  const chartGeometry = new THREE.BufferGeometry();
+  const chartPoints = new Float32Array(24 * 3);
+  chartGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(chartPoints, 3)
+  );
+  const chartMaterial = new THREE.LineBasicMaterial({
+    color: 0x22d3ee,
+    transparent: true,
+    opacity: 0.8,
+  });
+  const chartLine = new THREE.Line(chartGeometry, chartMaterial);
+  chartLine.position.set(0, 12, -10);
+  scene.add(chartLine);
+  threeState.chartLine = chartLine;
+
+  const animate = () => {
+    if (!threeState.scene) {
+      return;
+    }
+    const time = Date.now() * 0.001;
+    const targetX = threeState.mouse.x * 10;
+    const targetY = threeState.mouse.y * 6;
+    camera.position.x += (targetX - camera.position.x) * 0.02;
+    camera.position.y += (targetY - camera.position.y) * 0.02;
+    threeState.particles.rotation.y += threeState.rotationSpeed;
+    threeState.particles.rotation.x += threeState.rotationSpeed * 0.6;
+    threeState.arcs.forEach((arc, index) => {
+      arc.rotation.z += threeState.rotationSpeed * (index + 1) * 0.4;
+      arc.material.opacity =
+        0.15 + threeState.targetIntensity * (0.2 + index * 0.1);
+    });
+    threeState.particleMaterial.opacity = 0.4 + threeState.targetIntensity * 0.4;
+    if (threeState.ribbon) {
+      threeState.ribbon.rotation.y -= threeState.rotationSpeed * 0.4;
+    }
+    if (threeState.pulse) {
+      threeState.pulseStrength = Math.max(
+        threeState.pulseStrength - 0.008,
+        0
+      );
+      const scale = 1 + threeState.pulseStrength * 0.6;
+      threeState.pulse.scale.set(scale, scale, scale);
+      threeState.pulse.material.opacity = 0.15 + threeState.pulseStrength * 0.4;
+    }
+    if (threeState.chartLine && threeState.chartBase.length) {
+      const chartPositions =
+        threeState.chartLine.geometry.attributes.position.array;
+      threeState.chartBase.forEach((point, index) => {
+        const wave = Math.sin(time + index * 0.4) * 1.5;
+        chartPositions[index * 3] = point.x;
+        chartPositions[index * 3 + 1] = point.y + wave;
+        chartPositions[index * 3 + 2] = point.z + Math.cos(time + index * 0.4);
+      });
+      threeState.chartLine.geometry.attributes.position.needsUpdate = true;
+    }
+    if (threeState.energyFlow && threeState.energyPath) {
+      const t = (time * 0.08) % 1;
+      const point = threeState.energyPath.getPointAt(t);
+      threeState.energyFlow.position.copy(point);
+      threeState.energyNodes.forEach((node, index) => {
+        node.material.emissiveIntensity = 0.4 + Math.sin(time + index) * 0.3;
+      });
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  };
+
+  window.addEventListener("mousemove", (event) => {
+    threeState.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    threeState.mouse.y = (event.clientY / window.innerHeight) * -2 + 1;
+  });
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
 }
 
 function updateResult(data) {
