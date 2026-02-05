@@ -5,8 +5,13 @@ const threeState = {
   particles: null,
   particleMaterial: null,
   arcs: [],
+  grid: null,
+  ribbon: null,
+  pulse: null,
+  mouse: { x: 0, y: 0 },
   rotationSpeed: 0.002,
   targetIntensity: 0.5,
+  pulseStrength: 0,
 };
 
 function predict() {
@@ -157,6 +162,12 @@ function initThreeScene() {
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   container.appendChild(renderer.domElement);
 
+  const grid = new THREE.GridHelper(200, 20, 0x1e293b, 0x0f172a);
+  grid.position.y = -40;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.25;
+  scene.add(grid);
+
   const particleGeometry = new THREE.BufferGeometry();
   const particleCount = 160;
   const positions = new Float32Array(particleCount * 3);
@@ -209,11 +220,45 @@ function initThreeScene() {
   threeState.particles = particles;
   threeState.particleMaterial = particleMaterial;
   threeState.arcs = arcs;
+  threeState.grid = grid;
+
+  const ribbonGeometry = new THREE.BufferGeometry();
+  const ribbonPoints = new Float32Array(24 * 3);
+  ribbonGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(ribbonPoints, 3)
+  );
+  const ribbonMaterial = new THREE.LineBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.6,
+  });
+  const ribbon = new THREE.Line(ribbonGeometry, ribbonMaterial);
+  ribbon.position.y = -8;
+  scene.add(ribbon);
+  threeState.ribbon = ribbon;
+
+  const pulseGeometry = new THREE.RingGeometry(14, 16, 48);
+  const pulseMaterial = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide,
+  });
+  const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
+  pulse.rotation.x = Math.PI / 2;
+  pulse.position.y = -24;
+  scene.add(pulse);
+  threeState.pulse = pulse;
 
   const animate = () => {
     if (!threeState.scene) {
       return;
     }
+    const targetX = threeState.mouse.x * 10;
+    const targetY = threeState.mouse.y * 6;
+    camera.position.x += (targetX - camera.position.x) * 0.02;
+    camera.position.y += (targetY - camera.position.y) * 0.02;
     threeState.particles.rotation.y += threeState.rotationSpeed;
     threeState.particles.rotation.x += threeState.rotationSpeed * 0.6;
     threeState.arcs.forEach((arc, index) => {
@@ -222,9 +267,26 @@ function initThreeScene() {
         0.15 + threeState.targetIntensity * (0.2 + index * 0.1);
     });
     threeState.particleMaterial.opacity = 0.4 + threeState.targetIntensity * 0.4;
+    if (threeState.ribbon) {
+      threeState.ribbon.rotation.y -= threeState.rotationSpeed * 0.4;
+    }
+    if (threeState.pulse) {
+      threeState.pulseStrength = Math.max(
+        threeState.pulseStrength - 0.008,
+        0
+      );
+      const scale = 1 + threeState.pulseStrength * 0.6;
+      threeState.pulse.scale.set(scale, scale, scale);
+      threeState.pulse.material.opacity = 0.15 + threeState.pulseStrength * 0.4;
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
   };
+
+  window.addEventListener("mousemove", (event) => {
+    threeState.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    threeState.mouse.y = (event.clientY / window.innerHeight) * -2 + 1;
+  });
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -245,6 +307,7 @@ function updateThreeWithSeries(series) {
   const normalized = Math.min(Math.max((avgDemand - 700) / 500, 0), 1);
   threeState.rotationSpeed = 0.0015 + normalized * 0.004;
   threeState.targetIntensity = 0.3 + normalized * 0.7;
+  threeState.pulseStrength = 1;
 
   const positions = threeState.particles.geometry.attributes.position.array;
   series.forEach((point, index) => {
@@ -255,6 +318,21 @@ function updateThreeWithSeries(series) {
     positions[index * 3 + 2] = (Math.random() - 0.5) * 80;
   });
   threeState.particles.geometry.attributes.position.needsUpdate = true;
+
+  if (threeState.ribbon) {
+    const ribbonPositions =
+      threeState.ribbon.geometry.attributes.position.array;
+    series.forEach((point, index) => {
+      const progress = index / (series.length - 1);
+      const x = (progress - 0.5) * 140;
+      const y = (point.demand - avgDemand) * 0.06;
+      const z = Math.sin(progress * Math.PI * 2) * 20;
+      ribbonPositions[index * 3] = x;
+      ribbonPositions[index * 3 + 1] = y;
+      ribbonPositions[index * 3 + 2] = z;
+    });
+    threeState.ribbon.geometry.attributes.position.needsUpdate = true;
+  }
 }
 
 initThreeScene();
