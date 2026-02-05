@@ -102,9 +102,11 @@ h2 {
 }
 
 .layout {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 980px;
+  margin: 0 auto;
 }
 
 .panel {
@@ -114,6 +116,32 @@ h2 {
   padding: 24px;
   box-shadow: 0 24px 45px rgba(3, 7, 18, 0.35);
   backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
+}
+
+.panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    rgba(56, 189, 248, 0.08),
+    rgba(14, 165, 233, 0)
+  );
+  opacity: 0.6;
+}
+
+.request-panel {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 26px 60px rgba(56, 189, 248, 0.12);
 }
 
 .panel__header {
@@ -235,6 +263,10 @@ canvas,
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.insights li {
+  margin-bottom: 6px;
 }
 
 .insights {
