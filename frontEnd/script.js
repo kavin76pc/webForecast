@@ -8,6 +8,8 @@ const threeState = {
   grid: null,
   ribbon: null,
   pulse: null,
+  chartLine: null,
+  chartBase: [],
   mouse: { x: 0, y: 0 },
   rotationSpeed: 0.002,
   targetIntensity: 0.5,
@@ -43,6 +45,8 @@ function predict() {
       renderChart(data.series || []);
       updateThreeWithSeries(data.series || []);
     });
+    threeState.ribbon.geometry.attributes.position.needsUpdate = true;
+  }
 }
 
 function updateResult(data) {
@@ -254,10 +258,27 @@ function initThreeScene() {
   scene.add(pulse);
   threeState.pulse = pulse;
 
+  const chartGeometry = new THREE.BufferGeometry();
+  const chartPoints = new Float32Array(24 * 3);
+  chartGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(chartPoints, 3)
+  );
+  const chartMaterial = new THREE.LineBasicMaterial({
+    color: 0x22d3ee,
+    transparent: true,
+    opacity: 0.8,
+  });
+  const chartLine = new THREE.Line(chartGeometry, chartMaterial);
+  chartLine.position.set(0, 12, -10);
+  scene.add(chartLine);
+  threeState.chartLine = chartLine;
+
   const animate = () => {
     if (!threeState.scene) {
       return;
     }
+    const time = Date.now() * 0.001;
     const targetX = threeState.mouse.x * 10;
     const targetY = threeState.mouse.y * 6;
     camera.position.x += (targetX - camera.position.x) * 0.02;
@@ -281,6 +302,17 @@ function initThreeScene() {
       const scale = 1 + threeState.pulseStrength * 0.6;
       threeState.pulse.scale.set(scale, scale, scale);
       threeState.pulse.material.opacity = 0.15 + threeState.pulseStrength * 0.4;
+    }
+    if (threeState.chartLine && threeState.chartBase.length) {
+      const chartPositions =
+        threeState.chartLine.geometry.attributes.position.array;
+      threeState.chartBase.forEach((point, index) => {
+        const wave = Math.sin(time + index * 0.4) * 1.5;
+        chartPositions[index * 3] = point.x;
+        chartPositions[index * 3 + 1] = point.y + wave;
+        chartPositions[index * 3 + 2] = point.z + Math.cos(time + index * 0.4);
+      });
+      threeState.chartLine.geometry.attributes.position.needsUpdate = true;
     }
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
@@ -335,6 +367,17 @@ function updateThreeWithSeries(series) {
       ribbonPositions[index * 3 + 2] = z;
     });
     threeState.ribbon.geometry.attributes.position.needsUpdate = true;
+  }
+
+  if (threeState.chartLine) {
+    threeState.chartBase = series.map((point, index) => {
+      const progress = index / (series.length - 1);
+      return {
+        x: (progress - 0.5) * 160,
+        y: (point.demand - avgDemand) * 0.08,
+        z: Math.sin(progress * Math.PI) * 24,
+      };
+    });
   }
 }
 
