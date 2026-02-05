@@ -2,7 +2,7 @@
 
 ## Quick start
 
-### Backend (placeholder API)
+### Backend (AI forecast API)
 ```bash
 cd backend
 python -m venv .venv
@@ -18,5 +18,6 @@ python -m http.server 8000
 ```
 
 Open `http://localhost:8000/index.html` in a browser and use the place input to
-generate a sample forecast. The backend currently returns placeholder data that
-you can replace with the Python-based `.pkl` AI model later.
+generate a forecast. The backend expects `model.h5` and `scaler.pkl` (or
+`scalar.pkl`) inside `backend/` and will fall back to placeholder data if they
+are missing.

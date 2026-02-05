@@ -31,6 +31,15 @@
         <label for="place">Place</label>
         <input type="text" id="place" placeholder="e.g. Seattle, WA" />
 
+        <label for="last-demand">Last Recorded Demand (MW)</label>
+        <input
+          type="number"
+          id="last-demand"
+          placeholder="e.g. 60000"
+          min="0"
+          step="100"
+        />
+
         <div class="actions">
           <button type="button" onclick="predict()">Generate Forecast</button>
           <span class="hint">Results will update instantly.</span>
