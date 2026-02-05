@@ -10,6 +10,9 @@ const threeState = {
   pulse: null,
   chartLine: null,
   chartBase: [],
+  energyNodes: [],
+  energyFlow: null,
+  energyPath: null,
   mouse: { x: 0, y: 0 },
   rotationSpeed: 0.002,
   targetIntensity: 0.5,
@@ -149,6 +152,106 @@ function updateChartImage(imageUrl) {
   image.removeAttribute("src");
 }
 
+function updateResult(data) {
+  const summary = document.querySelector(".result__summary");
+  const highlights = document.querySelector(".result__highlights");
+  const headline = document.querySelector(".result__headline");
+  const timestamp = document.getElementById("timestamp");
+
+  headline.textContent = data.place
+    ? `Forecast Summary — ${data.place}`
+    : "Forecast Summary";
+  summary.textContent = data.summary || "No summary available.";
+  highlights.innerHTML = "";
+  (data.highlights || []).forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    highlights.appendChild(li);
+  });
+  timestamp.textContent = data.generatedAt
+    ? `Generated ${data.generatedAt}`
+    : "";
+}
+
+function renderChart(series) {
+  const canvas = document.getElementById("forecastChart");
+  const ctx = canvas.getContext("2d");
+  const image = document.getElementById("forecastImage");
+  const width = canvas.width;
+  const height = canvas.height;
+  const padding = 40;
+
+  if (!image.hasAttribute("hidden")) {
+    canvas.classList.add("is-hidden");
+    return;
+  }
+
+  canvas.classList.remove("is-hidden");
+  ctx.clearRect(0, 0, width, height);
+
+  if (!series.length) {
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "16px sans-serif";
+    ctx.fillText("Forecast chart will appear here.", padding, height / 2);
+    return;
+  }
+
+  const demands = series.map((point) => point.demand);
+  const minDemand = Math.min(...demands);
+  const maxDemand = Math.max(...demands);
+
+  const scaleX = (index) =>
+    padding + (index / (series.length - 1)) * (width - padding * 2);
+  const scaleY = (value) =>
+    height -
+    padding -
+    ((value - minDemand) / (maxDemand - minDemand || 1)) *
+      (height - padding * 2);
+
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.6)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  series.forEach((point, index) => {
+    const x = scaleX(index);
+    const y = scaleY(point.demand);
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "12px sans-serif";
+  series.forEach((point, index) => {
+    if (index % 6 === 0 || index === series.length - 1) {
+      const x = scaleX(index);
+      const y = height - padding + 18;
+      ctx.fillText(point.hour, x - 6, y);
+    }
+  });
+}
+
+function updateChartImage(imageUrl) {
+  const image = document.getElementById("forecastImage");
+  if (imageUrl) {
+    image.src = imageUrl;
+    image.removeAttribute("hidden");
+    return;
+  }
+  image.setAttribute("hidden", "");
+  image.removeAttribute("src");
+}
+
 function initThreeScene() {
   if (typeof THREE === "undefined") {
     return;
@@ -174,6 +277,55 @@ function initThreeScene() {
   grid.material.transparent = true;
   grid.material.opacity = 0.25;
   scene.add(grid);
+
+  const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.6);
+  scene.add(ambientLight);
+  const keyLight = new THREE.DirectionalLight(0x38bdf8, 0.7);
+  keyLight.position.set(50, 80, 40);
+  scene.add(keyLight);
+
+  const nodeGeometry = new THREE.SphereGeometry(2.6, 24, 24);
+  const nodeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: 0x0ea5e9,
+    emissiveIntensity: 0.6,
+  });
+  const energyNodes = [];
+  const nodePositions = [
+    [-50, -20, -10],
+    [0, -10, -20],
+    [45, -18, 5],
+    [20, 6, -35],
+  ];
+  nodePositions.forEach((pos) => {
+    const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
+    node.position.set(pos[0], pos[1], pos[2]);
+    scene.add(node);
+    energyNodes.push(node);
+  });
+
+  const pathCurve = new THREE.CatmullRomCurve3(
+    nodePositions.map((pos) => new THREE.Vector3(pos[0], pos[1], pos[2])),
+    true
+  );
+  const pathPoints = pathCurve.getPoints(120);
+  const pathGeometry = new THREE.BufferGeometry().setFromPoints(pathPoints);
+  const pathMaterial = new THREE.LineBasicMaterial({
+    color: 0x22d3ee,
+    transparent: true,
+    opacity: 0.35,
+  });
+  const energyPath = new THREE.Line(pathGeometry, pathMaterial);
+  scene.add(energyPath);
+
+  const flowGeometry = new THREE.SphereGeometry(1.4, 16, 16);
+  const flowMaterial = new THREE.MeshStandardMaterial({
+    color: 0x22d3ee,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.8,
+  });
+  const energyFlow = new THREE.Mesh(flowGeometry, flowMaterial);
+  scene.add(energyFlow);
 
   const particleGeometry = new THREE.BufferGeometry();
   const particleCount = 160;
@@ -228,6 +380,9 @@ function initThreeScene() {
   threeState.particleMaterial = particleMaterial;
   threeState.arcs = arcs;
   threeState.grid = grid;
+  threeState.energyNodes = energyNodes;
+  threeState.energyFlow = energyFlow;
+  threeState.energyPath = pathCurve;
 
   const ribbonGeometry = new THREE.BufferGeometry();
   const ribbonPoints = new Float32Array(24 * 3);
@@ -313,6 +468,14 @@ function initThreeScene() {
         chartPositions[index * 3 + 2] = point.z + Math.cos(time + index * 0.4);
       });
       threeState.chartLine.geometry.attributes.position.needsUpdate = true;
+    }
+    if (threeState.energyFlow && threeState.energyPath) {
+      const t = (time * 0.08) % 1;
+      const point = threeState.energyPath.getPointAt(t);
+      threeState.energyFlow.position.copy(point);
+      threeState.energyNodes.forEach((node, index) => {
+        node.material.emissiveIntensity = 0.4 + Math.sin(time + index) * 0.3;
+      });
     }
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
