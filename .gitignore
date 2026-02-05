@@ -1,0 +1,10 @@
+    # ML models
+*.h5
+*.pkl
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local folders
+webForecast/
