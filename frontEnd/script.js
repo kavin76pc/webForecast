@@ -16,8 +16,6 @@ const threeState = {
 
 function predict() {
   const place = document.getElementById("place").value.trim();
-  const lastDemandRaw = document.getElementById("last-demand").value;
-  const lastDemand = lastDemandRaw ? Number(lastDemandRaw) : null;
   if (!place) {
     updateResult({
       summary: "Please enter a place to generate a forecast.",
@@ -33,7 +31,6 @@ function predict() {
     },
     body: JSON.stringify({
       place: place,
-      lastDemand: Number.isFinite(lastDemand) ? lastDemand : null,
     }),
   })
     .then((res) => res.json())
